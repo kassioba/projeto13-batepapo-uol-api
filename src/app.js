@@ -25,26 +25,55 @@ mongoClient.connect()
 
 const now = dayjs()
 
-app.post('/participants', async (req, res) => {
-    const {name} = req.body
+app.post("/participants", async (req, res) => {
+  const { name } = req.body;
 
-    const nameSchema = joi.object({
-        name: joi.string().required()
-    })
+  const nameSchema = joi.object({
+    name: joi.string().required(),
+  });
 
-    const validation = nameSchema.validate(req.body);
+  const validation = nameSchema.validate(req.body);
 
-    if(validation.error) return res.sendStatus(422)
-    
-    const resp = await db.collection('participants').findOne({ name: name })
+  if (validation.error) return res.sendStatus(422);
+  try {
+    const resp = await db.collection("participants").findOne({ name: name });
 
-    if(resp) return res.sendStatus(409)
+    if (resp) return res.sendStatus(409);
+  } catch (err) {
+    return res.status(500).send(err.message);
+  }
 
-    await db.collection('participants').insertOne({ name: name, lastStatus: Date.now() })
+  try {
+    await db
+      .collection("participants")
+      .insertOne({ name: name, lastStatus: Date.now() });
+  } catch (err) {
+    return res.status(500).send(err.message);
+  }
 
-    await db.collection('messages').insertOne({ from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: `${now.$H}:${now.$m}:${now.$s}`})
+  try {
+    await db.collection("messages").insertOne({
+      from: name,
+      to: "Todos",
+      text: "entra na sala...",
+      type: "status",
+      time: `${now.$H}:${now.$m}:${now.$s}`,
+    });
+  } catch (err) {
+    return res.status(500).send(err.message);
+  }
 
-    res.sendStatus(201)
-})
+  res.sendStatus(201);
+});
+
+app.get("/paticipants", async (req, res) => {
+  try {
+    const participants = await db.collection("participants").find().toArray();
+
+    res.send(participants);
+  } catch (err) {
+    return res.status(500).send(err.message);
+  }
+});
 
 app.listen(5000)
