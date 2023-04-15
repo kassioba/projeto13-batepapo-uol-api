@@ -1,29 +1,30 @@
 import express from 'express'
 import cors from 'cors'
 import { MongoClient } from "mongodb"
-import joi from "joi"
-import dotenv from 'dotenv'
-import dayjs from 'dayjs'
+import joi from "joi";
+import dotenv from "dotenv";
+import dayjs from "dayjs";
 
-dotenv.config()
+dotenv.config();
 
-const app = express()
-app.use(express.json())
-app.use(cors())
+const app = express();
+app.use(express.json());
+app.use(cors());
 
-let db
+let db;
 
-const mongoClient = new MongoClient(process.env.DATABASE_URL)
-mongoClient.connect()
-.then(() => db = mongoClient.db())
-.catch((err) => console.log(err.message))
+const mongoClient = new MongoClient(process.env.DATABASE_URL);
+mongoClient
+  .connect()
+  .then(() => (db = mongoClient.db()))
+  .catch((err) => console.log(err.message));
 
 // const minute = 1000 * 60;
 // const hour = minute * 60;
 // const day = hour * 24;
 // const year = day * 365;
 
-const now = dayjs()
+const now = dayjs();
 
 app.post("/participants", async (req, res) => {
   const { name } = req.body;
@@ -69,8 +70,6 @@ app.post("/participants", async (req, res) => {
 });
 
 app.get("/participants", async (req, res) => {
-  console.log("oi");
-
   try {
     const participants = await db.collection("participants").find().toArray();
 
@@ -96,7 +95,7 @@ app.post("/messages", async (req, res) => {
 
   try {
     const resp = await db.collection("participants").findOne({ name: user });
-    console.log(resp);
+
     if (!resp) return res.sendStatus(422);
   } catch (err) {
     res.status(500).send(err.message);
@@ -118,6 +117,33 @@ app.post("/messages", async (req, res) => {
     res.sendStatus(201);
   } catch (err) {
     res.status(500).send(err.message);
+  }
+});
+
+app.get("/messages", async (req, res) => {
+  const limit = req.query.limit;
+  const user = req.headers.user;
+
+  const limitSchema = joi.number().greater(0);
+
+  const validation = limitSchema.validate(limit);
+
+  if (validation.error) return res.sendStatus(422);
+
+  try {
+    const resp = await db
+      .collection("messages")
+      .find({ $or: [{ to: "Todos" }, { to: user }, { from: user }] })
+      .toArray();
+
+    console.log(resp);
+
+    if (limit) {
+      return res.send(resp.reverse().slice(0, limit).reverse());
+    }
+    res.send(resp);
+  } catch (err) {
+    return res.status(500).send(err.message);
   }
 });
 
