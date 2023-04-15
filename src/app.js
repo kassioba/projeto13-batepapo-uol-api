@@ -82,7 +82,7 @@ app.get("/participants", async (req, res) => {
 
 app.post("/messages", async (req, res) => {
   const { to, text, type } = req.body;
-  const { from } = req.headers;
+  const { user } = req.headers;
 
   const messageSchema = joi.object({
     to: joi.string().required(),
@@ -95,14 +95,15 @@ app.post("/messages", async (req, res) => {
   if (validation.error) return res.status(422).send(validation.error);
 
   try {
-    const resp = await db.collection("participants").findOne({ name: from });
+    const resp = await db.collection("participants").findOne({ name: user });
+    console.log(resp);
     if (!resp) return res.sendStatus(422);
   } catch (err) {
     res.status(500).send(err.message);
   }
 
   const message = {
-    from,
+    from: user,
     to,
     text,
     type,
@@ -113,6 +114,7 @@ app.post("/messages", async (req, res) => {
 
   try {
     await db.collection("messages").insertOne(message);
+
     res.sendStatus(201);
   } catch (err) {
     res.status(500).send(err.message);
