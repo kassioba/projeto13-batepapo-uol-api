@@ -131,8 +131,6 @@ app.get("/messages", async (req, res) => {
       .find({ $or: [{ to: "Todos" }, { to: user }, { from: user }] })
       .toArray();
 
-    console.log(resp);
-
     if (limit) {
       return res.send(resp.reverse().slice(0, limit).reverse());
     }
@@ -170,13 +168,40 @@ app.post("/status", async (req, res) => {
 });
 
 setInterval(async () => {
+  const inactiveUsers = [];
+
+  try {
+    const resp = await db
+      .collection("participants")
+      .find({ lastStatus: { $lt: Date.now() - 10000 } })
+      .toArray();
+
+    resp.map((user) => {
+      inactiveUsers.push({
+        from: user.name,
+        to: "Todos",
+        text: "sai da sala...",
+        type: "status",
+        time: `${now.$H < 10 ? "0" + now.$H : now.$H}:${
+          now.$m < 10 ? "0" + now.$m : now.$m
+        }:${now.$s < 10 ? "0" + now.$s : now.$s}`,
+      });
+    });
+  } catch (err) {
+    return console.log(err.message);
+  }
+
   try {
     await db
       .collection("participants")
       .deleteMany({ lastStatus: { $lt: Date.now() - 10000 } });
+
+    if (inactiveUsers.length > 0) {
+      await db.collection("messages").insertMany(inactiveUsers);
+    }
   } catch (err) {
-    console.log(err.message);
+    return console.log(err.message);
   }
-}, 15000);
+}, 5000);
 
 app.listen(5000)
