@@ -19,11 +19,6 @@ mongoClient
   .then(() => (db = mongoClient.db()))
   .catch((err) => console.log(err.message));
 
-// const minute = 1000 * 60;
-// const hour = minute * 60;
-// const day = hour * 24;
-// const year = day * 365;
-
 const now = dayjs();
 
 app.post("/participants", async (req, res) => {
