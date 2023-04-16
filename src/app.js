@@ -174,4 +174,14 @@ app.post("/status", async (req, res) => {
   }
 });
 
+setInterval(async () => {
+  try {
+    await db
+      .collection("participants")
+      .deleteMany({ lastStatus: { $lt: Date.now() - 10000 } });
+  } catch (err) {
+    console.log(err.message);
+  }
+}, 15000);
+
 app.listen(5000)
