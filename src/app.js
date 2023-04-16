@@ -202,6 +202,6 @@ setInterval(async () => {
   } catch (err) {
     return console.log(err.message);
   }
-}, 5000);
+}, 15000);
 
 app.listen(5000)
